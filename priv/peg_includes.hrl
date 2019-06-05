@@ -17,7 +17,7 @@ p(Inp, StartIndex, Name, ParseFun, TransformFun) ->
         {fail,_} = Failure ->                       % If it fails, memoize the failure
           Failure;
         {Match, InpRem, NewIndex} ->               % If it passes, transform and memoize the result.
-          Transformed = TransformFun(Match, StartIndex),
+          Transformed = TransformFun(Match, StartIndex, NewIndex),
           {Transformed, InpRem, NewIndex}
       end,
       memoize(StartIndex, Name, Result),

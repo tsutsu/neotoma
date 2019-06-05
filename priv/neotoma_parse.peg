@@ -31,13 +31,17 @@ declaration <- nonterminal space* '<-' space* parsing_expression space? code_blo
                   {code, CodeBlock} -> CodeBlock;
                   _ ->
                       ets:insert_new(memo_table_name(),{gen_transform, true}),
-                      ["transform('",Symbol,"', Node, Idx)"]
+                      ["transform('",Symbol,"', Node, Idx, NewIdx)"]
                   end,
   TransformArgs = case used_transform_variables(Transform) of
-    []              -> "_Node, _Idx";
-    ['Idx']         -> "_Node, Idx";
-    ['Node']        -> "Node, _Idx";
-    ['Idx', 'Node'] -> "Node, Idx"
+    [                       ] -> "_Node, _Idx, _NewIdx";
+    [       'NewIdx'        ] -> "_Node, _Idx,  NewIdx";
+    ['Idx'                  ] -> "_Node,  Idx, _NewIdx";
+    ['Idx', 'NewIdx'        ] -> "_Node,  Idx,  NewIdx";
+    [                 'Node'] -> " Node, _Idx, _NewIdx";
+    [       'NewIdx', 'Node'] -> " Node, _Idx,  NewIdx";
+    ['Idx',           'Node'] -> " Node,  Idx, _NewIdx";
+    ['Idx', 'NewIdx', 'Node'] -> " Node,  Idx,  NewIdx"
   end,
   ["-spec '", Symbol, "'(input(), index()) -> parse_result().\n",
    "'",Symbol,"'","(Input, Index) ->\n  ",
@@ -284,7 +288,7 @@ used_combinator(C) ->
             ets:insert(memo_table_name(), {combinators, ordsets:add_element(C, Cs)})
     end.
 
--spec used_transform_variables(binary()) -> [ 'Node' | 'Idx' ].
+-spec used_transform_variables(binary()) -> [ 'Node' | 'Idx' | 'NewIdx' ].
 used_transform_variables(Transform) ->
   Code = unicode:characters_to_list(Transform),
   {ok, Tokens, _} = erl_scan:string(Code),
@@ -292,9 +296,10 @@ used_transform_variables(Transform) ->
 
 used_transform_variables([{var, _, Name}|Tokens], Acc) ->
   used_transform_variables(Tokens, case Name of
-                                    'Node' -> [Name | Acc];
-                                    'Idx'  -> [Name | Acc];
-                                    _      -> Acc
+                                    'Node'   -> [Name | Acc];
+                                    'Idx'    -> [Name | Acc];
+                                    'NewIdx' -> [Name | Acc];
+                                    _        -> Acc
                                   end);
 used_transform_variables([_|Tokens], Acc) ->
   used_transform_variables(Tokens, Acc);
