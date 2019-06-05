@@ -2,14 +2,18 @@
 
 all: compile
 
-compile:
+compile: src/neotoma_parse.erl
 	@./rebar compile
+
+src/neotoma_parse.erl:
+	@cp src/neotoma_parse.erl.safe src/neotoma_parse.erl
 
 test:
 	@./rebar eunit
 
 clean:
 	@./rebar clean
+	@rm -f src/neotoma_parse.erl
 
 neotoma.plt:
 	@dialyzer --build_plt --apps erts kernel stdlib compiler crypto hipe \
