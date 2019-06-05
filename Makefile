@@ -25,9 +25,11 @@ dialyzer: compile neotoma.plt
 xref: compile
 	@./rebar xref skip_deps=true
 
-bootstrap: compile
-	@erl -pz ebin -b start_sasl -noshell -s init stop -s neotoma bootstrap
+bootstrap: neotoma
+	@./neotoma "priv/neotoma_parse.peg" -output "src/"
 	@./rebar compile
 
-escript:
+escript: neotoma
+
+neotoma: src/neotoma_parse.erl compile
 	@./rebar escriptize
