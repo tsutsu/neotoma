@@ -5,7 +5,7 @@
 
 -define(ALL_COMBINATORS, [p_eof, p_optional, p_not, p_assert, p_seq,
         p_choose, p_zero_or_more, p_one_or_more, p_label, p_scan,
-        p_string, p_anything, p_charclass, p_regexp, line, column]).
+        p_string, p_anything, p_charclass, p_regexp, line, column, codepoint]).
 
 -type option() :: {module, atom()} | {output, file:filename()} |  {transform_module, atom()} |
                   {neotoma_priv_dir, file:filename()}.
@@ -87,7 +87,7 @@ generate_entry_functions(Root) ->
      "parse(List) when is_list(List) -> parse(unicode:characters_to_binary(List));\n",
      "parse(Input) when is_binary(Input) ->\n",
      "  _ = setup_memo(),\n",
-     "  Result = case '",RootRule,"'(Input,{{line,1},{column,1}}) of\n",
+     "  Result = case '",RootRule,"'(Input,{{codepoint,0},{line,1},{column,1}}) of\n",
      "             {AST, <<>>, _Index} -> AST;\n",
      "             Any -> Any\n"
      "           end,\n",
@@ -97,14 +97,18 @@ generate_entry_functions(Root) ->
 parse_grammar(InputFile) ->
     case neotoma_parse:file(InputFile) of
         {fail, Index} ->
-            throw({grammar_error, {fail, Index}});
+            throw({grammar_error, {fail, line_and_column(Index)}});
         {Parsed, Remainder, Index} ->
             io:format("WARNING: Grammar parse ended unexpectedly at ~p, generated parser may be incorrect.~nRemainder:~n~p",
-                      [Index, Remainder]),
+                      [line_and_column(Index), Remainder]),
             Parsed;
         L when is_list(L) -> L;
         _ -> throw({error, {unknown, grammar, InputFile}})
     end.
+
+line_and_column({FromIdx,_}) -> line_and_column(FromIdx);
+line_and_column({_,{line,L},{column,C}}) -> {{line,L},{column,C}};
+line_and_column(_) -> undefined.
 
 -spec create_transform(atom() | boolean(),file:filename(),_) -> iolist().
 create_transform(_,_,[]) -> [];

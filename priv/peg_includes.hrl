@@ -1,5 +1,5 @@
 -file("peg_includes.hrl", 1).
--type index() :: {{line, pos_integer()}, {column, pos_integer()}}.
+-type index() :: {{codepoint, pos_integer()}, {line, pos_integer()}, {column, pos_integer()}}.
 -type input() :: binary().
 -type parse_failure() :: {fail, term()}.
 -type parse_success() :: {term(), input(), index()}.
@@ -232,22 +232,28 @@ p_regexp(Regexp) ->
 
 -ifdef(line).
 -spec line(index() | term()) -> pos_integer() | undefined.
-line({{line,L},_}) -> L;
+line({_,{line,L},_}) -> L;
 line(_) -> undefined.
 -endif.
 
 -ifdef(column).
 -spec column(index() | term()) -> pos_integer() | undefined.
-column({_,{column,C}}) -> C;
+column({_,_,{column,C}}) -> C;
 column(_) -> undefined.
+-endif.
+
+-ifdef(codepoint).
+-spec line(index() | term()) -> pos_integer() | undefined.
+codepoint({{codepoint,P},_,_}) -> P;
+codepoint(_) -> undefined.
 -endif.
 
 -spec p_advance_index(input() | unicode:charlist() | pos_integer(), index()) -> index().
 p_advance_index(MatchedInput, Index) when is_list(MatchedInput) orelse is_binary(MatchedInput)-> % strings
   lists:foldl(fun p_advance_index/2, Index, unicode:characters_to_list(MatchedInput));
 p_advance_index(MatchedInput, Index) when is_integer(MatchedInput) -> % single characters
-  {{line, Line}, {column, Col}} = Index,
+  {{codepoint, Cpoint}, {line, Line}, {column, Col}} = Index,
   case MatchedInput of
-    $\n -> {{line, Line+1}, {column, 1}};
-    _ -> {{line, Line}, {column, Col+1}}
+    $\n -> {{codepoint, Cpoint+1}, {line, Line+1}, {column, 1}};
+    _ -> {{codepoint, Cpoint+1}, {line, Line}, {column, Col+1}}
   end.
